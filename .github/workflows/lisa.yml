@@ -6,7 +6,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Run LISA
-      run: docker-compose up --build
+      run: docker compose up --build
     - name: Upload reports
       uses: actions/upload-artifact@v4
       with:
