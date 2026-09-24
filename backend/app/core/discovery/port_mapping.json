@@ -1,0 +1,1 @@
+{"docker_mapping":"host:container","example":"9001:8080","external_use":"localhost:9001"}

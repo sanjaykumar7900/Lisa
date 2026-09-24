@@ -1,0 +1,1 @@
+{"service_health":{"Frontend":"● ONLINE localhost:3000","Backend":"● OFFLINE localhost:9001","PostgreSQL":"● OFFLINE localhost:5432","TestEnvironment":"● BLOCKED"}}

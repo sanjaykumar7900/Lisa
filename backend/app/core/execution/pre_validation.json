@@ -1,0 +1,1 @@
+{"validated":true,"conditions":["repo_analyzed","services_discovered","port_discovered","dependencies_found","app_started","tests_have_evidence","env_ready"]}

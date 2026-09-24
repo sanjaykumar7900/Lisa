@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  lisa-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lisa_autonomous_qa
+    ports:
+      - "8000:8000"
+    environment:
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+      - LISA_API_KEY=${LISA_API_KEY:-}
+      - DATABASE_URL=sqlite+aiosqlite:////app/backend/lisa.db
+      - MAX_TEST_STEPS=50
+      - MAX_TEST_TIME=600
+      - APP_STARTUP_TIMEOUT=30.0
+      - BROWSER_STEP_TIMEOUT_MS=10000
+      - MAX_REPO_FILES=5000
+      - MAX_EVIDENCE_AGE_DAYS=30
+      - LOG_LEVEL=INFO
+    volumes:
+      - lisa_data:/app/backend/runs
+      - lisa_temp:/app/backend/temp_repos
+
+volumes:
+  lisa_data:
+  lisa_temp:

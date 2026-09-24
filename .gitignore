@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# LISA runtime artifacts
+backend/lisa.db
+backend/temp_repos/
+backend/runs/
+backend/evidence/
+backend/logs/
+
+# Node / frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend build output
+frontend/dist/
+frontend/build/
+frontend/out/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Secrets
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+*.crt

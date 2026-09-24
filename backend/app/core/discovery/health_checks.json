@@ -1,0 +1,1 @@
+{"checks":["http_get","tcp","websocket","graphql","grpc","db_connect","redis_connect"]}

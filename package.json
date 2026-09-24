@@ -1,0 +1,12 @@
+{
+  "name": "lisa-qa-platform",
+  "version": "1.0.0",
+  "description": "LISA — Autonomous AI QA Testing Agent Platform",
+  "scripts": {
+    "start": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"cd backend && python -m pip install -r requirements.txt && python -X utf8 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --loop app.main:proactor_loop_factory\" \"cd frontend && npm install && npm run dev\"",
+    "dev": "npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

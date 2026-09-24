@@ -1,0 +1,1 @@
+{"services":["frontend","backend","auth","payment","database","redis","queue","search","gateway"]}

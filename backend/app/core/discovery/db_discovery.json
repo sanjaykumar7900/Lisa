@@ -1,0 +1,1 @@
+{"detect_from":["dependencies","docker_compose","env","orm","connection_string"]}

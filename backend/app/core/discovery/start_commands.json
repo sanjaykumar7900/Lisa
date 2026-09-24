@@ -1,0 +1,1 @@
+{"node":"npm start","react":"npm start","vite":"npm run dev","spring":"./mvnw spring-boot:run","fastapi":"uvicorn","django":"python manage.py runserver","go":"go run .","dotnet":"dotnet run","docker":"docker compose up"}

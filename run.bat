@@ -1,0 +1,3 @@
+@echo off
+echo Starting LISA Backend and Frontend in a single terminal window...
+npm start
