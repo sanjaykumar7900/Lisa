@@ -53,6 +53,7 @@ if settings.EVIDENCE_DIR.exists():
 app.add_middleware(APIKeyMiddleware)
 
 
+@app.get("/api/health")
 @app.get("/health")
 async def health():
     """Liveness probe for load balancers / Docker healthchecks."""

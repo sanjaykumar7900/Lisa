@@ -121,6 +121,7 @@ export const ReportsPage: React.FC = () => {
               <h3 className="text-sm font-bold text-slate-200 mb-3">Standalone HTML Report View</h3>
               <iframe
                 srcDoc={report.html_report}
+                sandbox="allow-scripts allow-same-origin"
                 className="w-full h-[500px] rounded-xl border border-slate-800 bg-slate-950"
                 title="QA Report iframe"
               />

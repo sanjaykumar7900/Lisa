@@ -66,7 +66,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectProject })
   const totalProjects = projects.length;
   const totalExecutions = testRuns.reduce((acc, r) => acc + r.total_tests, 0);
   const totalPassed = testRuns.reduce((acc, r) => acc + r.passed_tests, 0);
-  const passRate = totalExecutions > 0 ? ((totalPassed / totalExecutions) * 100).toFixed(1) : '0.0';
+  const passRate = totalExecutions > 0 ? ((totalPassed / totalExecutions) * 100).toFixed(1) : 'N/A';
   const totalBugs = bugs.length;
   const criticalBugs = bugs.filter((b) => b.severity === 'Critical').length;
   const latestRunId = testRuns.length > 0 ? testRuns[0].id : undefined;

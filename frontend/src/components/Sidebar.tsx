@@ -21,9 +21,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'projects', label: 'Projects', icon: FolderGit2 },
     { id: 'test-runs', label: 'Test runs', icon: PlayCircle },
-    { id: 'test-cases', label: 'Test cases', icon: FileCheck2 },
+    { id: 'test-cases', label: 'Test cases (Coming soon)', icon: FileCheck2 },
     { id: 'bugs', label: 'Issues found', icon: Bug },
-    { id: 'automation', label: 'AI assistant', icon: Cpu },
+    { id: 'automation', label: 'AI assistant (Coming soon)', icon: Cpu },
     { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -49,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           return (
             <button
               key={item.id}
+              disabled={item.id === 'test-cases' || item.id === 'automation'}
               onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all border ${
                 isActive

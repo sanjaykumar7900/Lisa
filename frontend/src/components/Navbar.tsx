@@ -24,7 +24,7 @@ export const Navbar: React.FC<NavbarProps> = ({ title }) => {
           <Shield className="w-3.5 h-3.5 text-cyan-300" />
           <span>AI provider: <b className="text-slate-300 font-medium">NVIDIA</b></span>
           <span className="text-slate-700">/</span>
-          <span>Latest run: <b className="text-slate-300 font-medium">RUN-0042</b></span>
+          <span>Latest run: <b className="text-slate-300 font-medium">—</b></span>
         </div>
         <button aria-label="Open command palette" className="hidden sm:flex items-center gap-2 px-3 py-2 text-[10px] mono text-slate-500 hover:text-cyan-300 border border-white/[0.08] rounded-md transition-colors">
           <Command className="w-3.5 h-3.5" /> <span>Commands</span>
