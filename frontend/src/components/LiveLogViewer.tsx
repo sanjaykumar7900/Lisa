@@ -40,7 +40,7 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({ runId, initialLogs
     };
 
     ws.onerror = (e) => console.error('WS error', e);
-    ws.onclose = () => console.log('LISA Live Console disconnected');
+    ws.onclose = () => console.log('LISA Live Console disconnected — reconnecting when runId updates');
 
     return () => {
       ws.close();
