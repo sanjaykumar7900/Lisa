@@ -1,0 +1,42 @@
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\endpoint_registry.py:33: class EndpointRegistry:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\endpoint_registry.py:81: cleaned = EndpointRegistry._normalize_path(path)
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\endpoint_registry.py:120: expected = EndpointRegistry._nearby_status(text, match.start())
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\endpoint_registry.py:149: path = EndpointRegistry._normalize_path(match.group(1))
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\endpoint_registry.py:153: path = EndpointRegistry._normalize_path(match.group(2))
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\runtime_engine.py:11: from app.core.discovery.endpoint_registry import EndpointRegistry
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\runtime_engine.py:12: from app.core.discovery.service_topology import ServiceTopology
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\runtime_engine.py:72: registry = EndpointRegistry()
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\runtime_engine.py:74: topology = ServiceTopology.build(services, database)
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\service_topology.py:8: class ServiceTopology:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\discovery\service_topology.py:47: return {"nodes": nodes, "edges": ServiceTopology._edges(nodes)}
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\assertion_engine.py:29: class AssertionEngine:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\health_engine.py:14: class HealthEngine:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\health_engine.py:36: HealthLayer.PORT_LISTENING.value: HealthEngine.tcp_listening(host, port),
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\parameter_resolver.py:46: class ParameterResolver:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\pass_authority.py:19: class PassAuthority:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\target_resolver.py:27: class TargetResolver:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:9: from app.core.execution.parameter_resolver import ParameterResolver
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:11: from app.core.execution.target_resolver import TargetResolver
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:59: class TestContractEngine:
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:66: resolver: ParameterResolver,
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:81: assertions = TestContractEngine._assertions_from_steps(steps, method, expected_result)
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:104: if any(TestContractEngine._is_weak(a) for a in assertions) and not any(
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:111: target = TargetResolver.resolve(
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:136: parsed = TestContractEngine.parse_expected_status(expected)
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\core\execution\test_contract.py:142: parsed = TestContractEngine.parse_expected_status(expected_result)
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:7: from app.core.execution.assertion_engine import AssertionEngine
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:8: from app.core.execution.parameter_resolver import ParameterResolver, TestDataStore
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:9: from app.core.execution.pass_authority import PassAuthority
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:11: from app.core.execution.target_resolver import TargetResolver
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:12: from app.core.execution.test_contract import TestContractEngine
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:23: self.resolver = ParameterResolver(self.data_store)
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:24: self.assertions = AssertionEngine()
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:40: decision = PassAuthority.decide(valid_target=True, valid_contract=False, executed=False, contract_reason=f"Invalid test method: {method}")
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:46: decision = PassAuthority.decide(valid_target=True, valid_contract=True, executed=False, unresolved_parameters=True, contract_reason=f"Unresolved required parameter(s): {', '.join(missing)}")
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:49: target = TargetResolver.resolve(resolved_path, runtime, service="backend")
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:51: decision = PassAuthority.decide(valid_target=False, valid_contract=True, executed=False, target_reason=target.reason)
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:54: expected_status = TestContractEngine.parse_expected_status(str(step.get("expected") or ""))
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:57: decision = PassAuthority.decide(valid_target=True, valid_contract=True, executed=False, assertions=[], contract_reason="No valid assertion")
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\api_tester.py:82: decision = PassAuthority.decide(
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\repo_agent.py:13: from app.core.discovery.endpoint_registry import EndpointRegistry
+C:\Users\sanja\OneDrive\Desktop\Lisa\backend\app\services\repo_agent.py:254: registry = EndpointRegistry()

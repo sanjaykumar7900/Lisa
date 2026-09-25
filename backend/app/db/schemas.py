@@ -29,6 +29,10 @@ class TestStep(BaseModel):
     target: Optional[str] = ""
     value: Optional[str] = None
     expected: Optional[str] = None
+    expected_status: Optional[int] = None
+    assertions: Optional[List[Dict[str, Any]]] = None
+
+    model_config = ConfigDict(extra="allow")
 
 class TestCaseCreate(BaseModel):
     test_id: str

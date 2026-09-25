@@ -100,16 +100,19 @@ class ApplicationRunner:
     ):
         self.repo_dir = repo_dir
         self.startup_command = startup_command
-        self.target_port = target_port or settings.TARGET_APPLICATION_PORT or find_free_port(settings.TARGET_PORT_RANGE_START)
+        self.target_port = target_port
         self.startup_timeout = startup_timeout or settings.APP_STARTUP_TIMEOUT
         self.process: Optional[subprocess.Popen] = None
         self.fallback_process: Optional[subprocess.Popen] = None
-        self.app_url: str = f"http://localhost:{self.target_port}"
+        self.app_url: str = f"http://localhost:{target_port}" if target_port else ""
         self.discovered_url: Optional[str] = None
         self.is_fallback: bool = False
+        self.health_path: Optional[str] = None
         self.stdout_lines: List[str] = []
         self.stderr_lines: List[str] = []
         self._reader_tasks: List[asyncio.Task] = []
+        self.runtime_status: str = "NOT_STARTED"
+        self.failure_reason: Optional[str] = None
 
     async def start(self) -> Tuple[bool, str, bool, Optional[str], bool]:
         """
@@ -118,35 +121,47 @@ class ApplicationRunner:
         """
         cmd = self.startup_command
         if not cmd:
-            logger.info("No startup command specified. Launching static fallback server.")
-            started, url, fallback, msg = await self._start_static_fallback("No startup command specified.")
-            return started, url, fallback, msg, False
+            logger.info("No startup command specified. Real target will not be started.")
+            self.runtime_status = "BLOCKED"
+            self.failure_reason = "STARTUP_COMMAND_NOT_FOUND"
+            return False, "", False, "No startup command specified.", False
 
-        cmd = self._use_target_port(cmd)
+        if self.target_port:
+            cmd = self._use_target_port(cmd)
 
-        # Validate security and internal state tokens
+        # Validate security and internal state tokens.
+        # If the command is invalid, we still launch a local diagnostic fallback so the
+        # runtime layer can distinguish a real app failure from a fallback shell.
         is_valid, reason = validate_startup_command(cmd)
         if not is_valid:
-            logger.warning(f"Startup command validation failed: {reason}. Launching static fallback server.")
-            started, url, fallback, _ = await self._start_static_fallback(f"Startup command '{cmd}' rejected: {reason}")
-            return started, url, fallback, f"Startup command '{cmd}' rejected: {reason}", False
+            logger.warning("Startup command validation failed: %s", reason)
+            self.runtime_status = "BLOCKED"
+            self.failure_reason = "STARTUP_COMMAND_NOT_FOUND"
+            fallback = await self._start_static_fallback(f"Startup command '{cmd}' rejected: {reason}")
+            return fallback[0], fallback[1], fallback[2], fallback[3], False
 
         logger.info(f"Launching target application process: '{cmd}' in {self.repo_dir}")
 
         try:
             env = os.environ.copy()
-            env["PORT"] = str(self.target_port)
-            env["SERVER_PORT"] = str(self.target_port)
+            if self.target_port:
+                env["PORT"] = str(self.target_port)
+                env["SERVER_PORT"] = str(self.target_port)
             env["HOST"] = "127.0.0.1"
 
-            # Check if command executable exists before running
             cmd_root = cmd.strip().split()[0]
-            if shutil_which := self._check_executable_exists(cmd_root):
-                pass
-            else:
-                logger.warning(f"Executable '{cmd_root}' not found in PATH on system.")
-                started, url, fallback, _ = await self._start_static_fallback(f"Executable '{cmd_root}' is not installed in system PATH.")
-                return started, url, fallback, f"Executable '{cmd_root}' is not installed in system PATH.", False
+            if not self._check_executable_exists(cmd_root):
+                logger.warning("Executable '%s' not found in PATH.", cmd_root)
+                self.runtime_status = "BLOCKED"
+                token = "MAVEN_MISSING" if "mvn" in cmd_root.lower() else "STARTUP_COMMAND_NOT_FOUND"
+                if "java" in cmd_root.lower():
+                    token = "JAVA_MISSING"
+                if cmd_root.lower() in {"npm", "node"}:
+                    token = "NODE_MISSING" if cmd_root.lower() == "node" else "NPM_MISSING"
+                if "python" in cmd_root.lower():
+                    token = "PYTHON_MISSING"
+                self.failure_reason = token
+                return False, "", False, f"Executable '{cmd_root}' is not installed in system PATH.", False
 
             is_windows = os.name == "nt"
             preexec_fn = None if is_windows else os.setsid
@@ -174,19 +189,22 @@ class ApplicationRunner:
             success, url_or_err = await self._wait_for_application_ready()
             if success:
                 self.app_url = url_or_err
+                self.runtime_status = "READY"
                 logger.info(f"Target application successfully running at {self.app_url}")
                 return True, self.app_url, False, None, True
             else:
-                logger.warning(f"Target application failed to start: {url_or_err}. Falling back to static server.")
+                logger.warning("Target application failed to start: %s", url_or_err)
                 self.stop()
-                started, url, fallback, _ = await self._start_static_fallback(url_or_err)
-                return started, url, fallback, url_or_err, False
+                self.runtime_status = "FAILED"
+                self.failure_reason = "STARTUP_FAILED"
+                return False, "", False, url_or_err, False
 
         except Exception as e:
             logger.error(f"Error starting target application process: {e}")
             self.stop()
-            started, url, fallback, _ = await self._start_static_fallback(str(e))
-            return started, url, fallback, str(e), False
+            self.runtime_status = "FAILED"
+            self.failure_reason = "STARTUP_FAILED"
+            return False, "", False, str(e), False
 
     def _check_executable_exists(self, cmd_name: str) -> bool:
         """Check if an executable or script is available in PATH or repo."""
@@ -241,11 +259,11 @@ class ApplicationRunner:
             if self.discovered_url:
                 candidate_urls.append(self.discovered_url)
 
-            # 3. Add default candidate URLs
-            candidate_urls.extend([
-                f"http://localhost:{self.target_port}",
-                f"http://127.0.0.1:{self.target_port}"
-            ])
+            if self.target_port:
+                candidate_urls.extend([
+                    f"http://localhost:{self.target_port}",
+                    f"http://127.0.0.1:{self.target_port}"
+                ])
 
             # Deduplicate preserving order
             seen = set()
@@ -283,32 +301,30 @@ class ApplicationRunner:
         except Exception:
             return False
 
-        # Step B: HTTP GET probe (any status < 500 means server is alive and responding)
+        # Step B: HTTP GET probe for PROTOCOL_READY. Do not invent /health.
         try:
             async with httpx.AsyncClient(timeout=1.5, verify=False) as client:
-                resp = await client.get(url)
+                probe_url = url.rstrip("/") + (self.health_path or "")
+                resp = await client.get(probe_url or url)
                 if resp.status_code < 500:
                     return True
-                # Also test /health or /api if root gave 500
-                health_resp = await client.get(f"{url.rstrip('/')}/health")
-                if health_resp.status_code < 500:
-                    return True
         except Exception:
-            # Socket was open, so the server might be just finishing startup
             pass
 
         return False
 
     async def _start_static_fallback(self, reason: str = "") -> Tuple[bool, str, bool, str]:
         """
-        Starts an internal Python HTTP server serving the repository's frontend or root directory.
-        Guarantees a valid, reachable HTTP URL for automated testing.
+        Diagnostic-only static server. Never a real target application.
+        Local/offline runs may use this for visibility, but the result is marked as fallback-only.
         """
         self.is_fallback = True
+        self.runtime_status = "BLOCKED"
+        self.failure_reason = "STARTUP_FAILED"
+
         fallback_port = find_free_port(settings.TARGET_PORT_RANGE_START + 100)
         fallback_url = f"http://localhost:{fallback_port}"
 
-        # Choose the best directory to serve
         static_dir = self._find_best_static_directory()
         logger.info(f"Starting static fallback server on {fallback_url} serving {static_dir}")
 
@@ -327,17 +343,16 @@ class ApplicationRunner:
                 preexec_fn=preexec_fn,
             )
 
-            # Wait for fallback server to be reachable
             start_time = time.time()
             while time.time() - start_time < 5.0:
                 if await self._check_url_ready(fallback_url):
                     self.app_url = fallback_url
                     logger.info(f"Static fallback server running at {self.app_url}")
-                    return True, self.app_url, True, reason
+                    return True, self.app_url, True, reason or "Diagnostic fallback active; real target did not start."
                 await asyncio.sleep(0.2)
 
             self.app_url = fallback_url
-            return True, self.app_url, True, reason
+            return True, self.app_url, True, reason or "Diagnostic fallback active; real target did not start."
 
         except Exception as e:
             logger.error(f"Failed to start static fallback server: {e}")

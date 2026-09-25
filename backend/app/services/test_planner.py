@@ -35,15 +35,44 @@ class TestPlanner:
             action = f"http_{method}" if method in {"get", "post", "put", "delete", "patch"} else None
             if not action:
                 continue
+
+            raw_status = endpoint.get("expected_status")
+            expected_status = raw_status if isinstance(raw_status, int) else None
+
+            if expected_status is not None:
+                step_expected = f"HTTP status is exactly {expected_status}"
+                case_expected = f"The {method.upper()} {endpoint['path']} endpoint responds with status {expected_status} as documented."
+                description = f"Verify the repository endpoint {method.upper()} {endpoint['path']} responds with status {expected_status} as documented by repository evidence."
+                step: Dict[str, Any] = {
+                    "step_number": 1,
+                    "action": action,
+                    "target": endpoint["path"],
+                    "expected": step_expected,
+                    "expected_status": expected_status,
+                    "assertions": [{"type": "status_code", "expected": expected_status}],
+                }
+            else:
+                step_expected = "No evidence-backed expected status discovered (unverified status assertion)"
+                case_expected = f"The {method.upper()} {endpoint['path']} endpoint responds, but lacks an evidence-backed expected status assertion."
+                description = f"Verify the repository endpoint {method.upper()} {endpoint['path']}; expected status is unverified without repository evidence."
+                step = {
+                    "step_number": 1,
+                    "action": action,
+                    "target": endpoint["path"],
+                    "expected": step_expected,
+                    "expected_status": None,
+                }
+
             cases.append({
                 "title": f"{method.upper()} {endpoint['path']} responds correctly",
-                "description": f"Verify the repository endpoint {method.upper()} {endpoint['path']} responds without an unexpected server error.",
+                "description": description,
                 "module": "REST API",
                 "test_type": "api",
                 "priority": "HIGH",
                 "risk": "HIGH",
-                "steps": [{"step_number": 1, "action": action, "target": endpoint["path"], "expected": "HTTP status is below 500"}],
-                "expected": f"The {method.upper()} {endpoint['path']} endpoint responds as documented.",
+                "steps": [step],
+                "expected": case_expected,
+                "expected_status": expected_status,
                 "evidence_source": endpoint.get("evidence", []),
             })
         return cases
@@ -114,7 +143,28 @@ class TestPlanner:
             add("Frontend application loads", "Verify the detected frontend renders without a client error.", "Frontend", "ui", "HIGH", "HIGH", [{"step_number": 1, "action": "open_url", "target": "/", "expected": "The application loads"}, {"step_number": 2, "action": "get_page_title", "target": "", "expected": "The page has a title"}], "The frontend loads and exposes its primary content.")
             add("Empty input is handled", "Check that empty user input does not create an invalid request.", "Frontend validation", "negative", "HIGH", "MEDIUM", [{"step_number": 1, "action": "open_url", "target": "/", "expected": "The application loads"}], "The application shows validation feedback and does not submit malformed data.")
         for endpoint_case in self._repository_api_cases():
-            add(endpoint_case["title"], endpoint_case["description"], endpoint_case["module"], endpoint_case["test_type"], endpoint_case["priority"], endpoint_case["risk"], endpoint_case["steps"], endpoint_case["expected"], {"endpoint_id": f"{endpoint_case['steps'][0]['action']}:{endpoint_case['steps'][0]['target']}", "evidence_sources": endpoint_case["evidence_source"], "generated_from_evidence": True})
+            first_step = endpoint_case["steps"][0]
+            expected_status = endpoint_case.get("expected_status")
+            endpoint_id = f"{first_step['action']}:{first_step['target']}"
+            case_data: Dict[str, Any] = {
+                "endpoint_id": endpoint_id,
+                "evidence_sources": endpoint_case["evidence_source"],
+                "generated_from_evidence": True,
+                "expected_status": expected_status,
+            }
+            if expected_status is not None:
+                case_data["assertions"] = [{"type": "status_code", "expected": expected_status}]
+            add(
+                endpoint_case["title"],
+                endpoint_case["description"],
+                endpoint_case["module"],
+                endpoint_case["test_type"],
+                endpoint_case["priority"],
+                endpoint_case["risk"],
+                endpoint_case["steps"],
+                endpoint_case["expected"],
+                case_data,
+            )
         if self.analysis.get("orm") != "Not detected" and self.analysis.get("database") != "Not detected":
             add("Persistence configuration is usable", "Verify application startup can initialize the detected persistence layer.", "Persistence", "integration", "MEDIUM", "MEDIUM", [{"step_number": 1, "action": "open_url", "target": "/", "expected": "Application is reachable"}], "The application starts with its configured database integration.")
         return cases

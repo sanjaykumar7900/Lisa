@@ -3,7 +3,7 @@ import re
 import shlex
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
-from typing import Tuple
+from typing import Optional, Tuple
 from app.core.config import settings
 
 SECRET_PATTERNS = [

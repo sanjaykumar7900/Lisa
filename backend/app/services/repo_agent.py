@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 import git
 
 from app.core.config import settings
+from app.core.discovery.endpoint_registry import EndpointRegistry
+from app.core.discovery.runtime_engine import RuntimeDiscovery
 from app.core.security import normalize_repo_url
 
 logger = logging.getLogger(__name__)
@@ -128,7 +130,10 @@ class RepositoryAgent:
                 continue
             deps = {**package.get("dependencies", {}), **package.get("devDependencies", {})}
             if "react" in deps or "react-dom" in deps:
-                frontend = "React" + (" + Vite" if vite_files else "")
+                if "react-scripts" in deps:
+                    frontend = "React / Create React App"
+                else:
+                    frontend = "React" + (" + Vite" if vite_files else "")
                 languages.update({"JavaScript"} if not any(p.name == "tsconfig.json" for p in files) else {"TypeScript"})
                 add_evidence("frontend", [package_file] + vite_files + [p for p in files if p.suffix in {".jsx", ".tsx"}])
             if "vite" in deps or vite_files:
@@ -150,7 +155,14 @@ class RepositoryAgent:
                 else:
                     rel_dir = rel(package_file.parent)
                     startup_commands.append(f"{package_manager} --prefix {rel_dir} run dev")
-                ports.append({"name": "Frontend", "technology": frontend or "Node.js", "port": 5173, "source": rel(package_file) + " scripts.dev"})
+                script_port = None
+                for script in scripts.values():
+                    port_match = re.search(r"--port(?:\s|=)(\d+)|PORT=(\d+)", str(script))
+                    if port_match:
+                        script_port = int(port_match.group(1) or port_match.group(2))
+                        break
+                if script_port:
+                    ports.append({"name": "Frontend", "technology": frontend or "Node.js", "port": script_port, "source": rel(package_file) + " scripts", "confidence": 0.8})
 
         pom_text = "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in pom_files).lower()
         gradle_text = "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in gradle_files).lower()
@@ -185,7 +197,6 @@ class RepositoryAgent:
                     logger.warning("[DISCOVERY] Maven dependency missing for Spring Boot project")
                 else:
                     startup_commands.append(f"{mvn_cmd} spring-boot:run")
-                ports.append({"name": "Backend", "technology": backend, "port": 8080, "source": "Spring Boot default; inspect application config"})
             if "spring-boot-starter-data-jpa" in pom_text or "spring-data-jpa" in gradle_text or any("@entity" in p.read_text(encoding="utf-8", errors="ignore").lower() for p in java_files):
                 orm = "JPA / Hibernate"
                 add_evidence("orm", pom_files + [p for p in java_files if "@entity" in p.read_text(encoding="utf-8", errors="ignore").lower()])
@@ -227,6 +238,11 @@ class RepositoryAgent:
         if mysql_match:
             ports.append({"name": "Database", "technology": "MySQL", "port": int(mysql_match.group(1)), "source": rel(next(p for p in prop_files if "jdbc:mysql" in p.read_text(encoding="utf-8", errors="ignore")))})
             database = "MySQL"
+        pg_match = re.search(r"jdbc:postgresql://[^:/]+(?::(\d+))?", config_text, re.I)
+        if pg_match or "postgresql" in config_text.lower():
+            database = "PostgreSQL"
+            if pg_match and pg_match.group(1):
+                ports.append({"name": "Database", "technology": "PostgreSQL", "port": int(pg_match.group(1)), "source": "application config", "confidence": 0.9})
         if "server.port" in config_text:
             match = re.search(r"server\.port\s*[=:]\s*(\d+)", config_text)
             if match:
@@ -234,18 +250,23 @@ class RepositoryAgent:
         add_evidence("database", prop_files if database else [])
         if not languages:
             languages.add("JavaScript")
-        if not startup_commands and runtime_status != "BLOCKED":
-            startup_commands.append("python -m http.server 3000")
         add_evidence("routes", [p for p in files if p.suffix in {".jsx", ".tsx", ".js", ".java"}])
-        for java_file in java_files:
-            java_text = java_file.read_text(encoding="utf-8", errors="ignore")
-            class_prefix_match = re.search(r"@RequestMapping\(\s*\"([^\"]+)\"\s*\).*?class\s+", java_text, re.S)
-            class_prefix = class_prefix_match.group(1).rstrip("/") if class_prefix_match else ""
-            for match in re.finditer(r"@(Get|Post|Put|Delete|Patch)Mapping(?:\(\s*(?:\"([^\"]*)\")?\s*\))?", java_text):
-                path = f"{class_prefix}/{match.group(2) or ''}".replace("//", "/") or "/"
-                if path != "/":
-                    path = path.rstrip("/")
-                api_endpoints.append({"method": match.group(1).upper(), "path": path, "evidence": [rel(java_file)]})
+        registry = EndpointRegistry()
+        api_endpoints = registry.discover(self.clone_path, files)
+        runtime = RuntimeDiscovery().discover(self.repo_url, self.clone_path)
+        for svc in runtime.get("services") or []:
+            if svc.get("port") and not any(p.get("name") == svc.get("name") and p.get("port") == svc.get("port") for p in ports):
+                ports.append({
+                    "name": (svc.get("name") or "service").title(),
+                    "technology": svc.get("technology"),
+                    "port": svc.get("host_port") or svc.get("port"),
+                    "container_port": svc.get("container_port"),
+                    "source": svc.get("source"),
+                    "confidence": svc.get("confidence"),
+                })
+        if runtime.get("database") and not database:
+            database = runtime["database"].get("type")
+            add_evidence("database", runtime["database"].get("evidence") or [])
         route_count = sum(len(re.findall(r"react-router|Route\s|@GetMapping|@PostMapping|@PutMapping|@DeleteMapping", p.read_text(encoding="utf-8", errors="ignore"))) for p in files if p.suffix in {".jsx", ".tsx", ".js", ".java"})
         api_count = sum(len(re.findall(r"fetch\(|axios\.|@(?:Get|Post|Put|Delete|Request)Mapping", p.read_text(encoding="utf-8", errors="ignore"))) for p in files if p.suffix in {".jsx", ".tsx", ".js", ".java"})
         modules = []
@@ -285,6 +306,8 @@ class RepositoryAgent:
             "route_count": route_count,
             "api_count": api_count,
             "api_endpoints": api_endpoints,
+            "runtime_discovery": runtime,
+            "topology": runtime.get("topology"),
             "modules": modules,
             "readme_snippet": readme_content[:1000]
         }

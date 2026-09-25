@@ -46,25 +46,24 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
     _auth: Optional[str] = Depends(require_api_key),
 ):
-    repo_url = normalize_repo_url(payload.repo_url)
+    raw_repo_url = (payload.repo_url or "").strip()
+    repo_url = normalize_repo_url(raw_repo_url)
     is_valid, msg = validate_repo_url(repo_url)
     if not is_valid:
         raise HTTPException(status_code=400, detail=msg)
 
-    # Derive project name if not specified
-    name = payload.name
-    if not name:
-        name = repo_url.rstrip("/").split("/")[-1].replace(".git", "").capitalize()
+    # Preserve the original repository URL as supplied by the user, while using the
+    # normalized form for validation and cloning safety checks.
+    name = payload.name or raw_repo_url.rstrip("/").split("/")[-1].replace(".git", "").capitalize()
 
-    # Check existing
-    res = await db.execute(select(Project).where(Project.repo_url == repo_url))
+    res = await db.execute(select(Project).where(Project.repo_url == raw_repo_url))
     existing = res.scalar_one_or_none()
     if existing:
         return existing
 
     project = Project(
         name=name,
-        repo_url=repo_url,
+        repo_url=raw_repo_url,
         startup_command=payload.startup_command,
         app_port=payload.app_port,
         status="CREATED"

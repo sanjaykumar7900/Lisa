@@ -42,8 +42,10 @@ class Settings(BaseSettings):
     
     # Security / Allowed Commands
     ALLOWED_COMMANDS: list[str] = [
-        "git", "npm", "npx", "node", "python", "python3", "pytest", "pip", "yarn", "pnpm", "go", "cargo", "mvn", "mvnw", "gradle", "gradlew"
+        "git", "npm", "npx", "node", "python", "python3", "pytest", "pip", "yarn", "pnpm", "go", "cargo",
+        "mvn", "mvnw", "mvnw.cmd", "gradle", "gradlew", "gradlew.bat", "uvicorn",
     ]
+    LISA_DIAGNOSTIC_FALLBACK: bool = os.getenv("LISA_DIAGNOSTIC_FALLBACK", "").lower() in {"1", "true", "yes"}
     
     # Autonomy Levels
     DEFAULT_AUTONOMY_LEVEL: int = 3  # 0: Manual, 1: Assisted, 2: Automated, 3: Autonomous, 4: Contribution
